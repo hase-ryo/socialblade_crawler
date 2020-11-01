@@ -59,14 +59,17 @@ def microsecond_unixtime_to_timestamp(micros, mode):
     # SocialBlade.com provide timestamp as unixtime with microseconds
     # And those timezone is PST (-5:00 Hour)
     # Convert timezone PST to JST here
+    # if objective chart is weekly, truncate date as start of week
 
     second_unixtime = dt.datetime.fromtimestamp(micros / 1000)
     timestamp = second_unixtime.replace(tzinfo=dt.timezone(dt.timedelta(hours=-5)))
     jst_timestamp = timestamp.astimezone(dt.timezone(dt.timedelta(hours=9)))
     if mode == 'weekly':
-        return(dt.date(jst_timestamp.year, jst_timestamp.month, jst_timestamp.day))
+        date = dt.date(jst_timestamp.year, jst_timestamp.month, jst_timestamp.day)
+        return(date - dt.timedelta(days=date.weekday()))
     elif mode == 'monthly':
-        return(dt.date(jst_timestamp.year, jst_timestamp.month, 1))
+        date = dt.date(jst_timestamp.year, jst_timestamp.month, 1)
+        return(date)
     else:
         return(jst_timestamp)
 
@@ -102,6 +105,7 @@ if __name__ == '__main__':
     for channel in channels:
         channel_id = channel['channel_id']
         name = channel['name']
+        print(name)
         script = get_chart_script(channel_id, chart_type)
         df = pd.DataFrame(list(script['series'][0]['data']), columns = ['timestamp', name])
         df['timestamp'] = df['timestamp'].apply(microsecond_unixtime_to_timestamp, mode=mode)
