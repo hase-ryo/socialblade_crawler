@@ -107,6 +107,9 @@ if __name__ == '__main__':
         name = channel['name']
         print(name)
         script = get_chart_script(channel_id, chart_type)
+        if script['series'][0]['data'] is None:
+            print("Skip " + name)
+            continue
         df = pd.DataFrame(list(script['series'][0]['data']), columns = ['timestamp', name])
         df['timestamp'] = df['timestamp'].apply(microsecond_unixtime_to_timestamp, mode=mode)
         dfs.append(df)
