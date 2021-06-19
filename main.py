@@ -14,31 +14,38 @@ def hichart_js_format(script_text, chart_type):
     # Return result as python dictionary
 
     target_section = False
+    function_section = False
     block = ""
     end_block = ""
     end_block_function = ""
     script_header = "Highcharts.chart('" + chart_type + "', "
 
     for line in script_text.splitlines():
-        if chart_type in line:
+        if script_header in line:
+            #データ取得開始フラグを立てる
             target_section = True
-            end_block = ' ' * re.match(r"\s*", line).group().count(' ') + '});'
+            end_block = '});'
         if target_section:
             if 'function' in line:
+                # JSONの中にあるfunctionブロックが終了判定に引っかかってしまうので読み飛ばす
                 function_section = True
                 end_block_function = ' ' * re.match(r"\s*", line).group().count(' ' ) + '}'
             if not function_section:
-                block += re.sub(r'^(.*)//(.*)$', r'\1', line).rstrip().lstrip()
+                block += re.sub(r'^(.*)//(.*)$', r'\1', line).rstrip().lstrip() #JSONをblockに追加
 
         if line.rstrip() == end_block_function:
             function_section = False
-        if line.rstrip() == end_block:
-            target_section = False
+        if not function_section:
+            if re.match(r'\s*\}\);', line.rstrip()):
+                #JSONの終端を見つけたらblock追加を終了
+                target_section = False
+
     if block:
         base = block.lstrip()[len(script_header):-2]
         key_cnv = re.sub(r'(\w+?):', r'"\1":', base)
         value_cnv = re.sub(r':\s?\'(.*?)\'(,|\s?})', r': "\1"\2', key_cnv)
         format_block = re.sub(r',\s?}', r'}', re.sub(r'\\\'', '', value_cnv))
+        print(format_block)
         return(json.loads(format_block))
 
 def get_chart_script(channel, chart_type):
@@ -55,7 +62,6 @@ def get_chart_script(channel, chart_type):
     # html = session.get(target_url, headers=headers)
     soup = BeautifulSoup(html, 'html.parser')
     result = {}
-    print(soup)
     for script in soup.find_all('script'):
         script_text = str(script)
         if 'Highcharts.chart' in script_text:
