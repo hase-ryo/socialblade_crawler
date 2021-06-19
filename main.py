@@ -1,5 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
+from selenium.webdriver import Chrome, ChromeOptions
+import chromedriver_binary
 import json
 import re
 import datetime as dt
@@ -43,12 +45,17 @@ def get_chart_script(channel, chart_type):
     # Crawling "Detailed Statistics" page about each Youtube channel at SocialBlade.com
     # Find "Highcharts" from HTML, which draws statistic graph
 
-    session = requests.Session()
+    # session = requests.Session()
+    options = ChromeOptions()
+    driver = Chrome(options=options)
     target_url = 'https://socialblade.com/youtube/channel/' + channel + '/monthly'
-    headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'}
-    html = session.get(target_url, headers=headers)
-    soup = BeautifulSoup(html.text, 'html.parser')
+    # headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1 Safari/605.1.15'}
+    driver.get(target_url)
+    html = driver.page_source.encode('utf-8')
+    # html = session.get(target_url, headers=headers)
+    soup = BeautifulSoup(html, 'html.parser')
     result = {}
+    print(soup)
     for script in soup.find_all('script'):
         script_text = str(script)
         if 'Highcharts.chart' in script_text:
