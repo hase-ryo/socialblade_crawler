@@ -45,21 +45,15 @@ def hichart_js_format(script_text, chart_type):
         key_cnv = re.sub(r'(\w+?):', r'"\1":', base)
         value_cnv = re.sub(r':\s?\'(.*?)\'(,|\s?})', r': "\1"\2', key_cnv)
         format_block = re.sub(r',\s?}', r'}', re.sub(r'\\\'', '', value_cnv))
-        print(format_block)
         return(json.loads(format_block))
 
-def get_chart_script(channel, chart_type):
+def get_chart_script(channel, chart_type, chromedriver):
     # Crawling "Detailed Statistics" page about each Youtube channel at SocialBlade.com
     # Find "Highcharts" from HTML, which draws statistic graph
 
-    # session = requests.Session()
-    options = ChromeOptions()
-    driver = Chrome(options=options)
     target_url = 'https://socialblade.com/youtube/channel/' + channel + '/monthly'
-    # headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1 Safari/605.1.15'}
     driver.get(target_url)
     html = driver.page_source.encode('utf-8')
-    # html = session.get(target_url, headers=headers)
     soup = BeautifulSoup(html, 'html.parser')
     result = {}
     for script in soup.find_all('script'):
@@ -115,16 +109,19 @@ if __name__ == '__main__':
     channels = get_target_channels(channels_filepath)
     result = pd.DataFrame(data=None, index=None, columns=None, dtype=None, copy=False)
     dfs = []
+    options = ChromeOptions()
+    driver = Chrome(options=options)
     for channel in channels:
         channel_id = channel['channel_id']
         name = channel['name']
         print(name)
-        script = get_chart_script(channel_id, chart_type)
+        script = get_chart_script(channel_id, chart_type, driver)
         if script['series'][0]['data'] is None:
             print("Skip " + name)
             continue
         df = pd.DataFrame(list(script['series'][0]['data']), columns = ['timestamp', name])
         df['timestamp'] = df['timestamp'].apply(microsecond_unixtime_to_timestamp, mode=mode)
+        print(df)
         dfs.append(df)
     for d in dfs:
         if result.empty:
